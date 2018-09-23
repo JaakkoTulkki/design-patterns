@@ -1,74 +1,4 @@
-type Command = () => void;
-
-class RemoteControl {
-    private onCommands: Command[] = [];
-    private offCommands: Command[] = [];
-    private undoCommands: Command[] = [];
-
-    private lastCommand: Command = () => null;
-
-    constructor() {
-        for(let i = 0; i <7; i++) {
-            this.onCommands[i] = () => {
-                console.log(`No ON command on row ${0}`);
-            };
-
-            this.offCommands[i] = () => {
-                console.log(`No OFF command on row ${0}`);
-            };
-
-            this.undoCommands[i] = () => {
-                console.log(`No UNDO command on row ${0}`);
-            };
-        }
-    }
-
-    addCommand(row: number, onCommand: Command, offCommand: Command, undoCommand: Command) {
-        this.onCommands[row] = onCommand;
-        this.offCommands[row] = offCommand;
-        this.undoCommands[row] = undoCommand;
-    }
-
-    clickOnButton(row: number) {
-        const command = this.onCommands[row];
-        command();
-        this.lastCommand = this.undoCommands[row];
-    }
-
-    clickOffButton(row: number) {
-        const command = this.offCommands[row];
-        command();
-        this.lastCommand = this.undoCommands[row];
-    }
-
-    undo() {
-        this.lastCommand()
-    }
-}
-
-class TV {
-    private _isOn = false;
-    turnOn() {
-        this._isOn = true;
-    }
-
-    turnOff() {
-        this._isOn = false;
-
-    }
-
-    isOn() {
-        return this._isOn;
-    }
-
-    undo() {
-        this._isOn = !this._isOn;
-    }
-}
-
-class Fan extends TV {
-
-}
+import {Fan, RemoteControl, TV} from "./command";
 
 describe('RemoteControl', () => {
     let tv: TV;
@@ -111,14 +41,42 @@ describe('RemoteControl', () => {
         expect(tv.isOn()).toBeTruthy();
     });
 
-    it('should allow changing undoing multiple actions', () => {
-        remote.clickOnButton(0);
-        remote.clickOnButton(1);
+    it('should allow undoing multiple actions', () => {
+        // initially both are off
+        expect(tv.isOn()).toBeFalsy();
+        expect(fan.isOn()).toBeFalsy();
+
+        remote.clickOnButton(1); // turn on fan
+        remote.clickOnButton(0); // turn on tv
+        remote.clickOffButton(1); // turn off fan
+        remote.clickOffButton(1); // turn off fan again accidentally
+        remote.clickOnButton(1); // turn on fan
+        remote.clickOffButton(0); // turn off tv
+        expect(tv.isOn()).toBeFalsy();
         expect(fan.isOn()).toBeTruthy();
+
+        remote.undo();
+        expect(tv.isOn()).toBeTruthy();
+        expect(fan.isOn()).toBeTruthy();
+
         remote.undo();
         expect(fan.isOn()).toBeFalsy();
+        expect(tv.isOn()).toBeTruthy();
+
         remote.undo();
-        // the undos should be an array in the remote
+        expect(fan.isOn()).toBeFalsy();
+        expect(tv.isOn()).toBeTruthy();
+
+        remote.undo();
+        expect(fan.isOn()).toBeTruthy();
+        expect(tv.isOn()).toBeTruthy();
+
+        remote.undo();
+        expect(fan.isOn()).toBeTruthy();
+        expect(tv.isOn()).toBeFalsy();
+
+        remote.undo();
+        expect(fan.isOn()).toBeFalsy();
         expect(tv.isOn()).toBeFalsy();
     });
 });
